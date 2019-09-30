@@ -12,8 +12,8 @@ let config;
 
 let configFile = fs.readFileSync('config.txt').toString();
 
-let configRegex = /(?<name>\w+) (?<port>\d{2,5})/g;
-let contentRegex = /(?<device>\w+) (?<command>\w+) (?<me>\w+)/g;
+let configRegex = /(?<name>\w+) (?<port>\d{2,5})/;
+let contentRegex = /(?<device>\w+) (?<command>\w+) (?<me>\w+)/;
 
 parseConfig();
 
@@ -36,12 +36,25 @@ function handleMessage(message, c) {
   }
 }
 
-function handleCommand(command, c) {
-  console.log(`${content.device} connected`)
-  c.write(`${config.name} ${''}`)
-  c.name = content.device;
+function handleCommand(content, c) {
+  console.log(`${content.device} connected: ${content.command}`)
+  if (content.command === 'STATUS')
+    c.end(`${config.name} ${status.metal ? 1 : 0} ${status.vidro ? 1 : 0} ${status.plastico ? 1 : 0} ${status.papel ? 1 : 0}\n`)
+  else if (content.command === 'CARREGAR') {
+    let n = 0;
+    for (const material in status) {
+      if (status[material] && n++ < 2)
+        status[material] = false;
+    }
+    c.end(`${config.name} OK`);
+  }
 }
 
 setInterval(() => {
-  
-}, config.updateInterval * 1000)
+  for (const material in status) {
+    if (!status[material]) {
+      status[material] = true;
+      break;
+    }
+  }
+}, 10000)
